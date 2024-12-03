@@ -1,48 +1,45 @@
-import React, { useEffect, useState } from "react";
-import { Text, View, Image,Button } from "react-native";
+import React, { useEffect } from "react"
+import { Text, View, Image, Button } from "react-native"
 import { Audio } from "expo-av";
 
-const Radio = ({ data, iterador }) => {
+const Radio = ({ data, iterador, soundRef }) => {
     if (!data || data.length === 0) {
         return <Text>Cargando...</Text>
     }
-    const [sound, setSound] = useState(null)
+
     const elemento = data[iterador]
 
     const handlePlay = async () => {
-        if (sound ) {
-            return
+        if (soundRef.current) {
+            return // Ya se está reproduciendo un sonido
         }
         try {
-            
-            const { sound: newSound } = await Audio.Sound.createAsync(
+            const { sound } = await Audio.Sound.createAsync(
                 { uri: elemento.stream },
                 { shouldPlay: true }
             );
-            setSound(newSound)
+            soundRef.current = sound // Guarda el sonido en soundRef
         } catch (error) {
             console.error("Error al reproducir el audio:", error)
         }
-    }
+    };
+
+    const handlePause = async () => {
+        if (soundRef.current) {
+            await soundRef.current.pauseAsync()
+            soundRef.current = null
+        }
+    };
 
     useEffect(() => {
-        if (elemento && elemento.stream) {
-            handlePlay()
-        }
-        
+        handlePlay()
         return () => {
-            if (sound) {
-                sound.unloadAsync()
+            if (soundRef.current) {
+                soundRef.current.unloadAsync()
+                soundRef.current = null
             }
         }
     }, [iterador])
-
-    const handlePause = async () => {
-        if (sound) {
-            await sound.pauseAsync()
-            setSound(null)
-        }
-    }
 
     return (
         <View key={elemento.name}>
@@ -57,7 +54,7 @@ const Radio = ({ data, iterador }) => {
             <Button title="Play" onPress={handlePlay} />
             <Button title="Pause" onPress={handlePause} />
         </View>
-    );
-};
+    )
+}
 
-export default Radio;
+export default Radio
